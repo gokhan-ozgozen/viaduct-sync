@@ -2,7 +2,7 @@ plugins {
     id("conventions.java")
 }
 
-description = "Java Tenant API interfaces"
+description = "Java Tenant API Interfaces"
 
 dependencies {
     compileOnly(libs.jspecify)
