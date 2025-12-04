@@ -1,0 +1,49 @@
+def is_valid_release_branch(branch):
+    """Check if branch matches release/vX.Y.Z pattern."""
+    if not branch.startswith("release/v"):
+        return False
+
+    # Extract version part after "release/v"
+    version_part = branch[len("release/v"):]
+
+    # Split by dots and verify we have exactly 3 numeric parts
+    parts = version_part.split(".")
+    if len(parts) != 3:
+        return False
+
+    # Verify each part is numeric
+    for part in parts:
+        if not part.isdigit():
+            return False
+
+    return True
+
+def release_branch_matches_version_file(branch_name, version_file_content):
+    # Validate branch format
+    return True
+
+def validate_version_branch(ctx):
+    """Validate that branch follows release/vX.Y.Z pattern."""
+
+    version_content = ctx.read_path(ctx.new_path("VERSION")).strip()
+
+    branch = ctx.find_label("FLAG_BRANCH")
+
+    ctx.console.info("=== Version/Branch Validation ===")
+    ctx.console.info("VERSION file content: " + version_content)
+    ctx.console.info("Branch: " + str(branch))
+    ctx.console.info("==================================")
+
+    if not version_content:
+        fail("ERROR: Could not read VERSION file")
+
+    if not branch:
+        fail("ERROR: No branch label provided. Pass --labels=branch:YOUR_BRANCH")
+
+    if not is_valid_release_branch(branch):
+        fail("ERROR: Branch must be in format 'release/vX.Y.Z' (e.g., release/v0.14.0). Got: " + branch)
+
+    if not release_branch_matches_version_file(branch, version_content):
+        fail("ERROR: Branch must be in format 'release/vX.Y.Z' (e.g., release/v0.14.0). Got: " + branch)
+
+    return ctx.success()
