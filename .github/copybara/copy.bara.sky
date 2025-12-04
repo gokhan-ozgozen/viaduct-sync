@@ -32,8 +32,16 @@ def validate_version_branch(ctx):
 
     version_content = ctx.read_path(ctx.new_path("VERSION")).strip()
 
-    # Get branch from SOURCE_REF config (passed via -v SOURCE_REF=xxx)
-    branch = core.get_config("SOURCE_REF")
+    # Debug: print all labels
+    ctx.console.info("=== ALL LABELS DEBUG ===")
+    all_labels = ctx.find_all_labels("FLAG_BRANCH")
+    ctx.console.info("find_all_labels(FLAG_BRANCH): " + str(all_labels))
+
+    # Try to get the message which might contain label info
+    ctx.console.info("Message: " + str(ctx.message)[:200])
+    ctx.console.info("========================")
+
+    branch = ctx.find_label("FLAG_BRANCH")
 
     ctx.console.info("=== Version/Branch Validation ===")
     ctx.console.info("VERSION file content: " + version_content)
@@ -44,7 +52,7 @@ def validate_version_branch(ctx):
         fail("ERROR: Could not read VERSION file")
 
     if not branch:
-        fail("ERROR: No SOURCE_REF config provided. Pass -v SOURCE_REF=YOUR_BRANCH")
+        fail("ERROR: No branch label provided. Pass --labels=branch:YOUR_BRANCH")
 
     if not is_valid_release_branch(branch):
         fail("ERROR: Branch must be in format 'release/vX.Y.Z' (e.g., release/v0.14.0). Got: " + branch)
