@@ -32,6 +32,11 @@ def validate_version_branch(ctx):
 
     version_content = ctx.read_path(ctx.new_path("VERSION")).strip()
 
+    # Debug: dump all available labels
+    ctx.console.info("=== ALL LABELS DEBUG ===")
+    ctx.console.info("ctx.cli_labels: " + str(ctx.cli_labels))
+    ctx.console.info("========================")
+
     branch = ctx.find_label("FLAG_BRANCH")
 
     ctx.console.info("=== Version/Branch Validation ===")
