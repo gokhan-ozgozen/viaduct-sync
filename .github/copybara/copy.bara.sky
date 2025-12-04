@@ -1,6 +1,9 @@
 # Unified Copybara configuration for publishing Viaduct demo apps
 # This config dynamically creates workflows for all demo apps
 
+# Source ref can be overridden via -v SOURCE_REF=<branch>
+SOURCE_REF = "HEAD"
+
 # === Version/Branch Validation Functions ===
 
 def is_valid_release_branch(branch):
@@ -46,6 +49,7 @@ def validate_version_branch(ctx):
     ctx.console.info("=== Version/Branch Validation ===")
     ctx.console.info("VERSION file content: " + version_content)
     ctx.console.info("Branch: " + str(branch))
+    ctx.console.info("Branch2: " + str(SOURCE_REF))
     ctx.console.info("==================================")
 
     if not version_content:
@@ -64,8 +68,7 @@ def validate_version_branch(ctx):
 
 # === End Validation Functions ===
 
-# Source ref can be overridden via -v SOURCE_REF=<branch>
-SOURCE_REF = "HEAD"
+
 
 # Define all demo apps that should be published
 # Add new demo apps here to automatically include them in publishing
