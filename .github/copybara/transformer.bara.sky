@@ -19,8 +19,8 @@ def is_valid_release_branch(branch):
     return True
 
 def release_branch_matches_version_file(branch_name, version_file_content):
-    # Validate branch format
-    return True
+    # Validate branch format, hardcoding to test.
+    return False
 
 def validate_version_branch(ctx):
     """Validate that branch follows release/vX.Y.Z pattern."""
