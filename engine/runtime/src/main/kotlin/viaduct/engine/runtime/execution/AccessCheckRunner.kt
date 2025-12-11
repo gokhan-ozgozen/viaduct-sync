@@ -20,6 +20,8 @@ import viaduct.engine.runtime.ObjectEngineResultImpl
 import viaduct.engine.runtime.Value
 import viaduct.engine.runtime.execution.FieldExecutionHelpers.resolveQueryPlanVariables
 import viaduct.engine.runtime.execution.FieldExecutionHelpers.resolveRSSVariables
+import viaduct.logging.ifDebug
+import viaduct.utils.slf4j.logger
 
 /**
  * Helper class that holds logic for executing access checks during field resolution
@@ -27,6 +29,10 @@ import viaduct.engine.runtime.execution.FieldExecutionHelpers.resolveRSSVariable
 class AccessCheckRunner(
     private val coroutineInterop: CoroutineInterop,
 ) {
+    companion object {
+        private val log by logger()
+    }
+
     /**
      * Executes the field access check for the given field.
      *
@@ -77,6 +83,9 @@ class AccessCheckRunner(
         if (fieldTypeChildPlans.isNotEmpty()) {
             fieldTypeChildPlans.forEach { childPlan ->
                 parameters.launchOnRootScope {
+                    log.ifDebug {
+                        debug("[AccessCheck] Pre-fetching field type child plan for field '${field.fieldName}' of type '$typeName', selection set: '${childPlan.selectionSet}'")
+                    }
                     val variables = resolveQueryPlanVariables(
                         childPlan,
                         parameters.executionStepInfo.arguments,
@@ -193,6 +202,14 @@ class AccessCheckRunner(
                     "missing from checker RSS",
                     selectionSet,
                 )
+            }
+            log.ifDebug {
+                val fieldCoord = if (checkerType == CheckerExecutor.CheckerType.FIELD) {
+                    "${parameters.executionStepInfo.objectType.name}.${parameters.field!!.fieldName}"
+                } else {
+                    "${objectEngineResult.graphQLObjectType.name}"
+                }
+                debug("[AccessCheck] Executing ${checkerType.name} access check for '$fieldCoord' at path '${parameters.path}', checker name: '${dispatcher.checkerMetadata?.checkerName}'")
             }
             instrumentedDispatcher.execute(
                 arguments,

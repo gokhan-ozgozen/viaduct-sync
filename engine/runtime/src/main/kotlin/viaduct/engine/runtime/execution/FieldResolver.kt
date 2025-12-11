@@ -230,7 +230,12 @@ class FieldResolver(
         parameters: ExecutionParameters,
         field: QueryPlan.CollectedField
     ): FieldDispatch {
-        field.childPlans.forEach { launchQueryPlan(parameters, it) }
+        field.childPlans.forEach {
+            log.ifDebug {
+                debug("Launching child plan for field ${field.fieldName} at path ${parameters.path}, selection set: ${it.selectionSet}")
+            }
+            launchQueryPlan(parameters, it)
+        }
         return executeField(parameters)
     }
 

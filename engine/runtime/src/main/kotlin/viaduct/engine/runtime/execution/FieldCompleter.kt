@@ -6,6 +6,7 @@ package viaduct.engine.runtime.execution
 import graphql.execution.DataFetcherExceptionHandler
 import graphql.execution.DataFetcherExceptionHandlerParameters
 import graphql.execution.DataFetcherExceptionHandlerResult
+import graphql.execution.ResultPath
 import graphql.execution.SimpleDataFetcherExceptionHandler
 import graphql.execution.instrumentation.InstrumentationContext
 import graphql.execution.instrumentation.SimpleInstrumentationContext.nonNullCtx
@@ -15,6 +16,7 @@ import graphql.schema.DataFetchingEnvironment
 import graphql.schema.GraphQLEnumType
 import graphql.schema.GraphQLScalarType
 import graphql.schema.GraphQLTypeUtil
+import kotlin.getValue
 import kotlinx.coroutines.Deferred
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import viaduct.deferred.asDeferred
@@ -32,6 +34,8 @@ import viaduct.engine.runtime.execution.FieldExecutionHelpers.buildDataFetchingE
 import viaduct.engine.runtime.execution.FieldExecutionHelpers.buildOERKeyForField
 import viaduct.engine.runtime.execution.FieldExecutionHelpers.collectFields
 import viaduct.engine.runtime.execution.FieldExecutionHelpers.executionStepInfoFactory
+import viaduct.logging.ifDebug
+import viaduct.utils.slf4j.logger
 
 /**
  * Core component of Viaduct's execution engine responsible for completing GraphQL field values by transforming raw
@@ -79,6 +83,10 @@ class FieldCompleter(
     private val dataFetcherExceptionHandler: DataFetcherExceptionHandler,
     private val temporaryBypassAccessCheck: TemporaryBypassAccessCheck,
 ) {
+    companion object {
+        private val log by logger()
+    }
+
     /**
      * Completes the selection set by completing each field.
      *
@@ -137,7 +145,9 @@ class FieldCompleter(
             val handledFieldValue = combineValues(
                 parentOER.getValue(fieldKey, RAW_VALUE_SLOT),
                 parentOER.getValue(fieldKey, ACCESS_CHECK_SLOT),
-                bypassChecker
+                bypassChecker,
+                field.fieldName,
+                newParams.path
             ).handleException(newParams, field)
 
             field.responseKey to completeField(field, newParams, handledFieldValue).map { it.value }
@@ -164,11 +174,18 @@ class FieldCompleter(
         rawSlotValue: Value<*>,
         checkerSlotValue: Value<*>,
         bypassChecker: Boolean,
+        fieldName: String,
+        path: ResultPath
     ): Value<FieldResolutionResult> {
         val fieldResolutionResultValue = checkNotNull(rawSlotValue as? Value<FieldResolutionResult>) {
             "Expected raw slot to contain Value<FieldResolutionResult>, was ${rawSlotValue.javaClass}"
         }
 
+        if (bypassChecker) {
+            log.ifDebug {
+                debug("[AccessCheck] Bypassing access check during completion for field '$fieldName' at path '$path'")
+            }
+        }
         // Return raw value immediatley if bypassing check or checkerSlot value is null
         if (bypassChecker || checkerSlotValue == Value.nullValue) {
             return fieldResolutionResultValue
@@ -401,7 +418,7 @@ class FieldCompleter(
         }
         val bypassCheck = temporaryBypassAccessCheck.shouldBypassCheck(field.mergedField.singleField, parameters.bypassChecksDuringCompletion)
         val listValues = cells.map {
-            combineValues(it.getValue(RAW_VALUE_SLOT), it.getValue(ACCESS_CHECK_SLOT), bypassCheck)
+            combineValues(it.getValue(RAW_VALUE_SLOT), it.getValue(ACCESS_CHECK_SLOT), bypassCheck, field.fieldName, parameters.path)
         }
         val instrumentationParams = InstrumentationFieldCompleteParameters(
             parameters.executionContextWithLocalContext,
