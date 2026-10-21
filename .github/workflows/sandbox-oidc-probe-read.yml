@@ -1,0 +1,24 @@
+name: Sandbox OIDC Probe (read)
+
+# Tests whether `id-token: read` is accepted and, if so, whether it is enough for the mirror.
+on:
+  push:
+    branches: [gokhanozg--ci-artifactory]
+    paths:
+      - .github/workflows/sandbox-oidc-probe*.yml
+      - .github/scripts/probe-oidc.sh
+      - .github/scripts/configure-dependency-mirror.sh
+  workflow_dispatch:
+
+env:
+  VIADUCT_DEPENDENCY_MIRROR_ROLE_ARN: ${{ vars.VIADUCT_DEPENDENCY_MIRROR_ROLE_ARN }}
+
+jobs:
+  id-token-read:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: read
+    steps:
+      - uses: actions/checkout@v6
+      - run: bash .github/scripts/probe-oidc.sh read
