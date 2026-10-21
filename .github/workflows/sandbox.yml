@@ -1,0 +1,46 @@
+name: Sandbox
+
+# Scratch workflow for trying out CI changes on this branch. Not meant for main.
+on:
+  push:
+    branches: [gokhanozg--ci-artifactory]
+    paths:
+      - .github/workflows/sandbox.yml
+      - .github/scripts/configure-dependency-mirror.sh
+      - .github/actions/setup-build/**
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  id-token: write
+
+concurrency:
+  group: sandbox-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  VIADUCT_DEPENDENCY_MIRROR_ROLE_ARN: ${{ vars.VIADUCT_DEPENDENCY_MIRROR_ROLE_ARN }}
+
+jobs:
+  sandbox:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Setup build
+        uses: ./.github/actions/setup-build
+        with:
+          cache-read-only: 'true'
+
+      - name: Require the mirror
+        shell: bash
+        run: |
+          if [ -z "${VIADUCT_ARTIFACTORY_MIRROR:-}" ]; then
+            echo "::error::The dependency mirror was not configured; see the warning from the setup step."
+            exit 1
+          fi
+          echo "Mirror host: $(echo "$VIADUCT_ARTIFACTORY_MIRROR" | sed -E 's#^https://[^@]*@##; s#/.*##')"
+
+      - name: Build shared:utils through the mirror
+        shell: bash
+        run: ./gradlew -p core :shared:utils:test --no-daemon
