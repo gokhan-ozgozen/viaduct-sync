@@ -1,0 +1,1 @@
+Disposable publication fixture for Copybara closure notification testing.
